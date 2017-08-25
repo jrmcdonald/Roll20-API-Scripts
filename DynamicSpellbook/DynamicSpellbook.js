@@ -47,9 +47,7 @@ var DynamicSpellbook = (() => {
    * @param {any} selected the selected token
    * @returns the character object
    */
-  const getSelectedCharacter = (selected) => {
-    return getObj('character', getObj(s._type, s._id));
-  };
+  const getSelectedCharacter = selected => getObj('character', getObj(selected._type, selected._id).get('represents'));
 
   /**
    * Create the dynamic spellbook template to send to the chat window. For the
@@ -189,7 +187,7 @@ var DynamicSpellbook = (() => {
       }
 
       // Only allow players who control the selected character
-      const char = getSelectedCharacter(msg.selected);
+      const char = getSelectedCharacter(msg.selected[0]);
       const controlledby = char.get('controlledby');
 
       if (playerIsGM(msg.playerid) || controlledby.includes(msg.playerid) || controlledby.includes('all')) {
