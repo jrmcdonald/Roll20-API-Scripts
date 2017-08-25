@@ -199,10 +199,10 @@ var TokenAction = (() => {
               createRepeating(PATTERNS.PLAYER_ATK, 'repeating_attack_%%RID%%_attack', char.id);
             }
             respond(msg, "Created Token Actions for " + char.get('name') + ".");
+          } else if (msg.content.startsWith(CHAT_COMMANDS.DELETE)) {
+            deleteAbilities(char.id);
+            respond(msg, "Deleted Token Actions for " + char.get('name') + ".");
           }
-        } else if (msg.content.startsWith(CHAT_COMMANDS.DELETE)) {
-          deleteAbilities(char.id);
-          respond(msg, "Deleted Token Actions for " + char.get('name') + ".");
         }
       });
     }
