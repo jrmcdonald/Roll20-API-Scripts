@@ -1,0 +1,14 @@
+{
+  "name": "DynamicSpellbook",
+  "script": "DynamicSpellbook.js",
+  "version": "0.0.1",
+  "description": "Provides a command to generate a dynamic spellbook in the chat window. Each spell is presented as a clickable command button. By specifying command options, the list of spells can be filtered in various ways. Optionally applies /fx commands to matching spells, when used in conjunction with FxLoader.js.\r\r*Compatible with the 5th Edition OGL Community Sheet.*\r\r## Commands\r\r```!dsb [--help] [--prepared-only] [--filter-by-level <levels>] [--apply-fx]```\r\r* `--help` -- Displays in game help.\r* `--prepared-only` -- Filters the spellbook to only contain prepared spells\r* `--filter-by-level <levels>` -- Filters the spellbook to only contain spells of a certain level. The `<levels>` argument should contain a comma separated list of spell levels e.g. `--filter-by-level 0,1,2,3`.\r* `--apply-fx` -- Apply /fx commands to the spells.\r\r## Applying FX\r\rTo automatically apply /fx commands to the generated spell buttons, the `--apply-fx` option should be used in conjunction with the FxLoader.js script.rovides a command to generate a dynamic spellbook in the chat window. Each spell is presented as a clickable command button. By specifying command options, the list of spells can be filtered in various ways. Optionally applies /fx commands to matching spells, when used in conjunction with FxLoader.js.\r\r## Commands\r\r```!dsb [--prepared-only] [--filter-by-level] [--apply-fx] [--help]```\r\r* `--help` -- Displays in game help.\r*`--prepared-only` -- Filters the spell.",
+  "authors": "Fletch",
+  "roll20userid": "213105",
+  "useroptions": {},
+  "dependencies": {},
+  "modifies": {
+    "ability.*": "read,write"
+  },
+  "conflicts": []
+}

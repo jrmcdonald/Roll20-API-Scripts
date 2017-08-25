@@ -1,0 +1,14 @@
+{
+  "name": "TokenAction",
+  "script": "TokenAction.js",
+  "version": "0.0.1",
+  "description": "A modified version of [Kevin's TokenAction script](https://github.com/beeke01/TokenAction). Generates TokenActions for NPC and Player tokens using the 5th Edition OGL Community Sheet. NPC Actions include attacks, legendary attacks and spells. Player actions include initiative, ability checks, saving throws, skill checks and attacks.\r\rIf FxLoader.js is installed, it will register /fx commands to be applied to matching spell attacks.\r\r ## Commands\r\r```!ta```\r\ror\r\r```!deleteta```",
+  "authors": "Fletch",
+  "roll20userid": "213105",
+  "useroptions": {},
+  "dependencies": {},
+  "modifies": {
+    "ability.*": "read,write"
+  },
+  "conflicts": []
+}

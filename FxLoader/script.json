@@ -1,0 +1,12 @@
+{
+  "name": "FxLoader",
+  "script": "FxLoader.js",
+  "version": "0.0.1",
+  "description": "",
+  "authors": "Fletch",
+  "roll20userid": "213105",
+  "useroptions": {},
+  "dependencies": {},
+  "modifies": {},
+  "conflicts": []
+}
