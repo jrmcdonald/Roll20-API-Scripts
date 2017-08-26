@@ -63,76 +63,62 @@ var DynamicSpellbook = (() => {
    * @returns the template to output to the chat window
    */
   const createSpellbook = (id, preparedOnly, levelFilter, applyFx) => {
-    const repeatingSpells = filterObjs((o) => {
-      return o.get('type') === 'attribute' && o.get('characterid') === id && o.get('name').match(PATTERN_REPEATING_SPELL);
-    });
-
     const spellbook = { '0': [], '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': [], '8': [], '9': [] };
 
-    _.each(repeatingSpells, (spell) => {
-      const attrId = spell.get('name');
-      const attrIdPrefix = attrId.substring(0, attrId.lastIndexOf("_"));
+    filterObjs((o) => {
+      if (o.get('type') === 'attribute' && o.get('characterid') === id && o.get('name').match(PATTERN_REPEATING_SPELL)) {
+        const attr = o.get('name');
+        const attrPrefix = attr.substring(0, attr.lastIndexOf("_"));
 
-      const name = spell.get('current');
-      const prep = getAttrByName(id, attrIdPrefix + "_prep");
+        const name = o.get('current');
+        let level = attr.split('_')[1].replace('spell-', '').replace('cantrip', 0);
 
-      let level = spell.get('name').split('_')[1].replace('spell-', '');
+        // Determine whether to filter out the spell or not
+        let includeSpell = true;
+      
+        if (preparedOnly && parseInt(getAttrByName(id, attrPrefix + '_prep'), 10) !== 1) {
+          includeSpell = false;
+        }
+  
+        if (!_.isEmpty(levelFilter) && !levelFilter.includes(level)) {
+          includeSpell = false;
+        }
 
-      // Reset the cantrip level to 0 for numerical filtering and to shorten screen output
-      if (level === 'cantrip') {
-        level = "0";
-      }
+        if (includeSpell) {
+          let spellAction = '%{selected|' + attrPrefix + '_spell}';
 
-      // Determine whether to filter out the spell or not
-      let includeSpell = true;
+          if (applyFx) {
+            const fx = fxMap.get(name);
 
-      if (preparedOnly && parseInt(prep, 10) !== 1) {
-        includeSpell = false;
-      }
-
-      if (!_.isEmpty(levelFilter) && !levelFilter.includes(level)) {
-        includeSpell = false;
-      }
-
-      // Build the ability macro and store an API button in the spellbook
-      if (includeSpell) {
-        const checkSpell = findObjs({ _type: 'ability', _characterid: id, name: name });
-        let spellAction = '%{selected|' + attrIdPrefix + '_spell}';
-
-        if (applyFx) {
-          const fx = fxMap.get(name);
-
-          if (!_.isUndefined(fx)) {
-            spellAction += "\n" + fx;
+            if (!_.isUndefined(fx)) {
+              spellAction += "\n" + fx;
+            }
           }
-        }
 
-        if (checkSpell[0]) {
-          checkSpell[0].set({ action: spellAction });
-        } else {
-          createObj("ability", { name: name, action: spellAction, characterid: id, istokenaction: false });
-        }
+          const checkSpell = findObjs({ _type: 'ability', _characterid: id, name: name });
 
-        spellbook[level].push('[' + name + '](!&#13;&#37;{selected|' + name + '})');
+          if (checkSpell[0]) {
+            checkSpell[0].set({ action: spellAction });
+          } else {
+            createObj("ability", { name: name, action: spellAction, characterid: id, istokenaction: false });
+          }
+
+          spellbook[level].push('[' + name + '](!&#13;&#37;{selected|' + name + '})');
+        }
       }
+      return;
     });
 
     // Build up the template string
-    let template = '';
+    let templates = [];
 
     _.mapObject(spellbook, (spells, level) => {
       if (!_.isEmpty(spells)) {
-        template += " {{Level " + level + "=" + spells.join('') + "}}";
+        templates.push(" {{Level " + level + "=" + spells.join('') + "}}");
       }
     });
 
-    if (template === '') {
-      template = '**No spells found matching your criteria.**';
-    } else {
-      template = "&{template:default} {{name=Spells}}" + template;
-    }
-
-    return template;
+    return templates.length > 0 ? '&{template:default} {{name=Spells}}' + templates.join() : '**No spells found matching your criteria.**';
   };
 
   /**
@@ -165,7 +151,7 @@ var DynamicSpellbook = (() => {
         respond(msg, '**Please only select 1 token.**');
         return;
       }
-
+      
       if (args.includes(CHAT_OPT_HELP)) {
         respond(msg, displayHelp());
         return;
