@@ -189,7 +189,7 @@ var TokenAction = (() => {
             if (isNpc(char.id)) {
               createRepeating(PATTERNS.NPC_ACTION, 'repeating_npcaction_%%RID%%_npc_action', char.id);
               createRepeating(PATTERNS.NPC_ACTION_L, 'repeating_npcaction-l_%%RID%%_npc_action', char.id);
-              createRepeating(PATTERNS.NPC_SPELL, 'repeating_spell-npc_%%RID%%_spell', char.id);
+              createAbility('Spells', "!dsb --prepared-only --apply-fx", char.id);
             } else {
               createAbility('0 Init', "%{selected|initiative}", char.id);
               createAbility('0 Checks', "/w \"@{character_name}\" &{template:default} {{name=Ability Checks}} {{Strength=[Strength](~selected|Strength)}} {{Dexterity=[Dexterity](~selected|Dexterity)}} {{Constitution=[Constitution](~selected|Constitution)}} {{Intelligence=[Intelligence](~selected|Intelligence)}} {{Wisdom=[Wisdom](~selected|Wisdom)}} {{Charisma=[Charisma](~selected|Charisma)}}", char.id);

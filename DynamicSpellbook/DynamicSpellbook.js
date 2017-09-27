@@ -75,8 +75,19 @@ var DynamicSpellbook = (() => {
 
         // Determine whether to filter out the spell or not
         let includeSpell = true;
+
+        if (level.startsWith('{{')) {
+          // Added after OGL sheet 2.0 and spell conversion process.
+          return;
+        }
       
-        if (preparedOnly && parseInt(getAttrByName(id, attrPrefix + '_prep'), 10) !== 1) {
+        let preparedVal = getAttrByName(id, attrPrefix + '_prep');
+        
+        if (typeof preparedVal == 'undefined') {
+            preparedVal = getAttrByName(id, attrPrefix + '_spellprepared');
+        }
+      
+        if (level != 0 && preparedOnly && parseInt(preparedVal, 10) !== 1) {
           includeSpell = false;
         }
   
