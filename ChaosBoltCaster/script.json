@@ -1,0 +1,14 @@
+{
+  "name": "ChaosBoltCaster",
+  "script": "ChaosBoltCaster.js",
+  "version": "0.0.1",
+  "description": "Provides a command to automatically chain cast chaos bolt.",
+  "authors": "Fletch",
+  "roll20userid": "213105",
+  "useroptions": {},
+  "dependencies": {},
+  "modifies": {
+    "ability.*": "read,write"
+  },
+  "conflicts": []
+}
