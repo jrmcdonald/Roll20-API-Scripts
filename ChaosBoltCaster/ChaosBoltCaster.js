@@ -16,26 +16,16 @@ var ChaosBoltCaster = (() => {
     const CHAT_NAME = 'Chaos Bolt Caster';
     const CHAT_COMMAND = '!cbc';
 
+    const CHAT_OPT_ADV = '--advantage';
     const CHAT_OPT_LEVEL = '--level';
     const CHAT_OPT_CHAINED = '--chained';
 
-    const VER_TEXT = 'Chaos Bolt Verification:';
-
     const CB_DMG_TYPES = ['Acid', 'Cold', 'Fire', 'Force', 'Lightning', 'Poison', 'Psychic', 'Thunder'];
-
-    let state = {
-        who: '',
-        char: {},
-        level: 1,
-        chained: false,
-    };
 
     /**
      * Displays the script version information to the API console.
      */
-    const displayInfo = () => {
-        log(CHAT_NAME + ' v' + VERSION + ' loaded.')
-    };
+    const displayInfo = () => log(CHAT_NAME + ' v' + VERSION + ' loaded.');
 
     /**
      * Fetch the character object for the selected token. 
@@ -46,52 +36,48 @@ var ChaosBoltCaster = (() => {
     const getSelectedCharacter = selected => getObj('character', getObj(selected._type, selected._id).get('represents'));
 
     /**
-     * Sends the verification message to the GM.
+     * Template string definitions.
      */
-    const sendVerification = () => {
-        sendChat(CHAT_NAME, '/w gm ' + VER_TEXT + ' [[1d8]] [[1d8]]');
-    };
+    const templateAdvantage = (advantage) => { return {'0':'normal', '1':'advantage', '2':'disadvantage'}[advantage]; };
+    const templateAttack = (name, level, advantage, dmgType, dmg1, dmg2) => `&{template:atkdmg} {{mod=+@{${name}|spell_attack_bonus}}} {{rname=Chaos Bolt}} {{r1=[[1d20+@{${name}|charisma_mod}[CHA]+@{${name}|pb}[PROF]]]}} {{${templateAdvantage(advantage)}=1}} {{r2=[[1d20+@{${name}|charisma_mod}[CHA]+@{${name}|pb}[PROF]]]}} {{attack=1}} {{range=120ft}} {{damage=1}} {{dmg1flag=1}} {{dmg1type=${dmgType}}} {{dmg1=[[${dmg1}+${dmg2}+1d6]]}} {{crit1=[[2d8+1d6]]}} {{hldmg=[[(${level}-1)d6]]}} {{spelllevel=${level}}} {{charname=@{${name}|character_name}}}`;
+    const templateSlotsRemaining = (name, level) => `&{template:desc} {{desc=**SPELL SLOT LEVEL ${level}**\n**@{${name}|lvl${level}_slots_expended} OF @{${name}|lvl${level}_slots_total} REMAINING**}}`;
+    const templateSlotsExpended = (level) => `<div class="sheet-rolltemplate-desc"> <div class="sheet-desc sheet-info"> <span> <span class="sheet-top"></span> <span class="sheet-middle"> <strong>SPELL SLOT LEVEL ${level}</strong> <br> <strong style="color: red;">ALL SLOTS EXPENDED</strong> </span> <span class="sheet-bottom"></span> </span> </div> </div>`;
+    const templateChain = (name, level, advantage) => `/w ${name} &{template:desc} {{desc=[CHAIN CHAOS BOLT](!cbc --level ${level} --advantage ${advantage} --chained)}}`;
 
     /**
-     * Cast chaos bolt and perform admin.
+     * Cast chaos bolt and perform the necessary calculations for determining damage type
+     * and whether the spell can be chained or not. Expend spell slots as appropriate.
+     *  
+     * @param {character object} char the character token selected
+     * @param {int} level the level at which chaos bolt is being cast
+     * @param {int} advantage whether to cast with advantage or not
+     * @param {boolean} chained whether this is a chained cast or not
      */
-    const castChaosBolt = (msg) => {
-        const char = state.char;
-        const level = state.level;
-        const chained = state.chained;
-        const charName = char.get('name');
-        filterObjs((o) => {
-            if (o.get('type') === 'attribute' && o.get('characterid') === char.id && o.get('name') === 'lvl' + level + '_slots_expended') {
-                let inlineResults = [];
+    const castChaosBolt = (char, level, advantage, chained) => {
+        const name = char.get('name');
+        sendChat('', '[[1d8]] [[1d8]]', function (ops) {
+            filterObjs((o) => {
+                if (o.get('type') === 'attribute' && o.get('characterid') === char.id && o.get('name') === `lvl${level}_slots_expended`) {
+                    let inlineResults = [];
 
-                _.each(msg.inlinerolls, function (r) {
-                    inlineResults.push(r.results.total);
-                });
+                    _.each(ops[0].inlinerolls, (r) => inlineResults.push(r.results.total));
 
-                const dmgType = CB_DMG_TYPES[inlineResults[0] - 1];
-                const atk = '[[1d20+@{' + charName + '|charisma_mod}[CHA]+@{' + charName + '|pb}[PROF]]]';
-                const atkTemplate = '&{template:atkdmg} {{mod=+@{' + charName + '|spell_attack_bonus}}} {{rname=Chaos Bolt}} {{r1=' + atk + '}} {{always=1}} {{r2=' + atk + '}} {{attack=1}} {{range=120ft}} {{damage=1}} {{dmg1flag=1}} {{dmg1type=' + dmgType + '}} {{dmg1=[[' + inlineResults[0] + '+' + inlineResults[1] + '+1d6]]}} {{crit1=[[2d8+1d6]]}} {{hldmg=[[(' + level + ' - 1)d6]]}} {{spelllevel=' + level + '}} {{charname=@{' + charName + '|character_name}}}';
-                const splTemplate = '&{template:desc} {{desc=**SPELL SLOT LEVEL ' + level + '**\n**@{' + charName + '|lvl' + level + '_slots_expended} OF @{' + charName + '|lvl' + level + '_slots_total} REMAINING**}}';
-                const excTemplate = '&{template:desc} {{desc=**SPELL SLOT LEVEL ' + level + '**\n**ALL SLOTS EXPENDED**}}';
-                const chnTemplate = '/w "' + state.who + '" [CHAIN CHAOS BOLT](!cbc --level ' + level + ' --chained)';
+                    sendChat(name, templateAttack(name, level, advantage, CB_DMG_TYPES[inlineResults[0] - 1], inlineResults[0], inlineResults[1]));
 
-                sendChat(charName, atkTemplate);
+                    if (!chained) {
+                        if (o.get('current') != 0) {
+                            o.set({ current: o.get('current') - 1, });
+                            sendChat(name, templateSlotsRemaining(name, level));
+                        } else {
+                            sendChat(name, templateSlotsExpended(level));
+                        }
+                    }
 
-                if (!chained) {
-                    if (o.get('current') != 0) {
-                        o.set({
-                            current: o.get('current') - 1,
-                        });
-                        sendChat(charName, splTemplate);
-                    } else {
-                        sendChat(charName, excTemplate);
+                    if (inlineResults[0] === inlineResults[1]) {
+                        sendChat(CHAT_NAME, templateChain(name, level, advantage));
                     }
                 }
-
-                if (inlineResults[0] === inlineResults[1]) {
-                    sendChat(CHAT_NAME, chnTemplate);
-                }
-            }
+            });
         });
     };
 
@@ -101,9 +87,7 @@ var ChaosBoltCaster = (() => {
      * @param {any} msg the original chat message
      * @param {any} response the response to send
      */
-    const respond = (msg, response) => {
-        sendChat(CHAT_NAME, "/w " + msg.who + " " + response);
-    };
+    const respond = (msg, response) => sendChat(CHAT_NAME, "/w " + msg.who + " " + response);
 
     /**
      * Handler for chat input.
@@ -115,12 +99,7 @@ var ChaosBoltCaster = (() => {
         if (msg.type === 'api' && msg.content.startsWith(CHAT_COMMAND) && msg.selected) {
             let chained = false;
             let level = 1;
-
-            // Validate and parse for arguments
-            if (msg.selected.length > 1) {
-                respond(msg, '**Please only select 1 token.**');
-                return;
-            }
+            let advantage = 0;
 
             const args = msg.content.split(' ');
 
@@ -137,22 +116,29 @@ var ChaosBoltCaster = (() => {
                 }
             }
 
+            if (args.includes(CHAT_OPT_ADV)) {
+                advantage = Number.parseInt(args[args.indexOf(CHAT_OPT_ADV) + 1]);
+
+                if (Number.isNaN(advantage) || (advantage < 0 || advantage > 2)) {
+                    respond(msg, '**Please provide a valid number between 0 - 3 for advantage.**');
+                    return;
+                }
+            }
+
             // Only allow players who control the selected character
             const char = getSelectedCharacter(msg.selected[0]);
-            const controlledby = char.get('controlledby');
 
-            if (playerIsGM(msg.playerid) || controlledby.includes(msg.playerid) || controlledby.includes('all')) {
-                state.char = char;
-                state.level = level;
-                state.chained = chained;
-                state.who = msg.who;
-
-                sendVerification();
-            } else {
-                respond(msg, '**Please select a token you control.**');
+            if (msg.selected.length > 1 || !char.get('controlledby').includes(msg.playerid)) {
+                respond(msg, '**Please select 1 token that you control.**');
+                return;
             }
-        } else if (msg.type === 'whisper' && msg.playerid === 'API' && msg.who === CHAT_NAME && msg.content.startsWith(VER_TEXT)) {
-            castChaosBolt(msg);
+
+            if (getAttrByName(char.id, 'class') != 'Sorcerer') {
+                respond(msg, '**You must be a sorcerer to cast Chaos Bolt.');
+                return;
+            }
+
+            castChaosBolt(char, level, advantage, chained);
         }
     };
 
