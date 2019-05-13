@@ -12,16 +12,22 @@
 
 var MaxMonsterHP = MaxMonsterHP || (function() {
     'use strict';
+    
+    const VERSION = '0.0.1';
+    
+    const CHAT_NAME = 'MaxMonsterHP';
+    const CHAT_COMMAND = '!mmhp';
 
-    var version = '0.0.1',
-        lastUpdate = 1471266501,
-        tokenIds = [],
+    const CHAT_OPT_SEL = '--fix-selected';
+    const CHAT_OPT_ALL = '--fix-all';
+    
+    let tokenIds = [];
 
-    checkInstall = function() {
-        log('-=> MaxMonsterHP v'+version+' <=-  ['+(new Date(lastUpdate*1000))+']');
-    },
+    const checkInstall = function() {
+        log('-=> MaxMonsterHP v'+VERSION+' <=-');
+    };
 
-    handleInput = function(msg) {
+    const handleInput = function(msg) {
         var args;
 
         if (msg.type !== "api") {
@@ -33,13 +39,13 @@ var MaxMonsterHP = MaxMonsterHP || (function() {
             case '!mmh':
                 break;
         }
-    },
+    };
 
-    parseValue = function(val) {
+    const parseValue = function(val) {
         return parseInt(val || "1");
-    },
+    };
     
-    parseExpression = function(expressiom) {
+    const parseExpression = function(expression) {
         log("Parsing " + expression);
       
         var parts = expression.split(/d/);
@@ -51,9 +57,9 @@ var MaxMonsterHP = MaxMonsterHP || (function() {
         }
         
         return sum;
-    },
+    };
 
-    setMaxHP = function(obj) {
+    const setMaxHP = function(obj) {
         var sets = {},
             bar = 'bar1',
             hdAttrib,
@@ -88,9 +94,9 @@ var MaxMonsterHP = MaxMonsterHP || (function() {
                 }
             }
         }
-    },
+    };
 
-    saveTokenId = function(obj){
+    const saveTokenId = function(obj){
         tokenIds.push(obj.id);
 
         setTimeout((function(id){
@@ -101,9 +107,9 @@ var MaxMonsterHP = MaxMonsterHP || (function() {
                 }
             };
         }(obj.id)),100);
-    },
+    };
 
-    registerEventHandlers = function() {
+    const registerEventHandlers = function() {
         on('chat:message', handleInput);
         on('add:graphic', saveTokenId);
         on('change:graphic', setMaxHP);
