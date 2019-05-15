@@ -1,0 +1,14 @@
+{
+  "name": "MaxMonsterHP",
+  "script": "MaxMonsterHP.js",
+  "version": "0.0.1",
+  "description": "Automatically sets NPC tokens to Max HP when added to the tabletop. Provides options to fix selected tokens or all tokens in the campaign using !mmhp.",
+  "authors": "Fletch",
+  "roll20userid": "213105",
+  "useroptions": {},
+  "dependencies": {},
+  "modifies": {
+    "ability.*": "read,write"
+  },
+  "conflicts": []
+}
