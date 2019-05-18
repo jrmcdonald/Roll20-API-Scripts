@@ -47,6 +47,14 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
      * @returns The int value.
      */
     const parseValue = val => parseInt(val || "1");
+
+    /**
+     * Multiply a dice expression, e.g. 2d6 becomes 2*6 = 12.
+     * 
+     * @param {*} dice the expression to multiply
+     * @return the multiplied result
+     */
+    const replaceDice = dice => dice.replace(/(\d+)d(\d+)/g, (m, d1, d2) => parseValue(d1) * parseValue(d2));
     
     /**
      * Calculate the max value of a hit dice expression.
@@ -56,7 +64,7 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
      * @param {any} expression the hit dice expression to calculate the maximum of
      * @returns the calculated value
      */
-    const parseExpression = expression => expression.split(/d/).reduce((a,b) => parseValue(a) * parseValue(b));
+    const parseExpression = expression => (replaceDice(expression).replace(/\s/g, '').match(/[+\-]?([0-9\.]+)/g || []).reduce((s, v) => parseValue(s) + parseValue(v)));
 
     /**
      * Check if the supplied character id is an NPC or not.
@@ -78,13 +86,35 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
     };
 
     /**
+     * Fetch the static max hp value..
+     *  
+     * @param {any} obj the object to get the max hp value from
+     * @returns the max hp value
+     */
+    const getMaxHpValue = obj => {
+        let maxHpValue = -1;
+
+        const hpAttrib = findObjs({
+            type: 'attribute', 
+            characterid: obj.get('represents'),
+            name: 'hp'
+        })[0];
+        
+        if (hpAttrib) {
+            maxHpValue = hpAttrib.get('max');
+        }
+
+        return maxHpValue;
+    };
+
+    /**
      * Fetch the hit dice expression.
      *  
      * @param {any} obj the object to get the hit dice expression from
      * @returns the hit dice expression
      */
     const getExpression = obj => {
-        let hdExpression = 0;
+        let hdExpression = "";
 
         const hdAttrib = findObjs({
             type: 'attribute', 
@@ -100,27 +130,54 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
     };
 
     /**
+     * Check if the token is an NPC with a Hit Dice formula.
+     * 
+     * @param {any} obj the object to check
+     * @returns true or false
+     */ 
+    const isDesiredToken = obj => obj && 'graphic' === obj.get('type') && 'token' === obj.get('subtype') && '' !== obj.get('represents') && '' === obj.get('bar1_link') && isNpc(obj.get('represents'));
+
+    /**
      * Set the maximum hp value on a token. 
      * 
      * @param {any} obj the object to update
      */
-    const setMaxHp = obj => {
-        if(obj && 'graphic' === obj.get('type') 
-            && 'token' === obj.get('subtype') 
-            && '' !== obj.get('represents')
-            && '' === obj.get('bar1_link')
-            && isNpc(obj.get('represents'))) {
-
-                let expression = getExpression(obj); 
-                let hp = expression.replace(/[^+0-9d]+/g, "")
-                            .split(/\+/)
-                            .map(parseExpression)
-                            .reduce((a, b) => parseValue(a) + parseValue(b));
+    const handleToken = obj => {
+        if(isDesiredToken(obj)) {
+            let expression = getExpression(obj);
+            if (expression != "") {
+                let hp = parseExpression(expression);
                 
                 log(`Setting HP for ${obj.get('name')} to ${hp} (${expression}).`);                
                 obj.set({bar1_value: hp || 1, bar1_max: hp || 1});
+            } else {
+                let hp = getMaxHpValue(obj) || 1;
+                
+                if (hp != -1) {
+                    log(`Setting HP for ${obj.get('name')} to static value ${hp}.`);                
+                    obj.set({bar1_value: hp, bar1_max: hp});
+                }
+            }
         }
     }
+    /**
+     * Process an array of tokens and delay setting hp to avoid infinite loop timer.
+     * 
+     * @param {any} objects the objects to update
+     */ 
+    const delayedHandleTokens = objects => {
+        let cObjects = _.clone(objects);
+        
+        let dWork = obj => {
+            handleToken(obj);
+            
+            if(cObjects.length) {
+                _.delay(dWork, 50, cObjects.shift());
+            }
+        };
+
+        dWork(cObjects.shift());
+    };
 
     /**
      * Handle the change:graphic event.
@@ -130,7 +187,7 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
     const handleChangeGraphic = obj => {
         if(_.contains(tokenIds, obj.id)) {
             tokenIds = _.without(tokenIds, obj.id);
-            setMaxHp(obj);
+            handleToken(obj);
         }
     };
 
@@ -181,17 +238,21 @@ var MaxMonsterHP = MaxMonsterHP || (() => {
             
             if (args.includes(CHAT_OPT_SEL) && msg.selected) {
                 _.each(msg.selected, selected => {
-                    setMaxHp(getObj(selected._type, selected._id));
+                    handleToken(getObj(selected._type, selected._id));
                 });
                 return;
             }
             
             if (args.includes(CHAT_OPT_ALL)) {
-                filterObjs((o) => {
-                    if ('graphic' === o.get('type') && 'token' === o.get('subtype') && '' !== o.get('represents')) {
-                        setMaxHp(o);
-                    }
+                let tokens = [];
+                let i = 0;
+                _.chain(findObjs({type: 'graphic', subtype: 'token'}))
+                    .filter(obj => '' !== obj.get('represents') && '' === obj.get('bar1_link'))
+                    .each(function(obj) {
+                        tokens.push(obj)
                 });
+                log(`Found ${tokens.length} to update`);
+                delayedHandleTokens(tokens);
                 return;
             }
         }
