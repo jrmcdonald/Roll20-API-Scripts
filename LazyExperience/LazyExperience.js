@@ -285,7 +285,7 @@ var LazyExperience = LazyExperience || (function() {
     setExperience = (experience, characterid) => {
         let playerid;
         if(characterid){
-            playerid = findObjs({ _id: characterid, _type: 'character' }).shift().get('controlledby').split(',')[0];
+            playerid = findObjs({ _id: characterid, _type: 'character' }).shift().get('controlledby').split(',')[1];
             if(playerid !== ""){
                 state[state_name].players[playerid].characters.forEach((character, i) =>{
                     if(character.id === characterid){
